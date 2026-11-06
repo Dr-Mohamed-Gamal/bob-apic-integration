@@ -1,0 +1,7 @@
+.DS_Store
+__pycache__/
+~$*
+# Bob's outputs during a run
+requirements/
+apic/
+docs/
