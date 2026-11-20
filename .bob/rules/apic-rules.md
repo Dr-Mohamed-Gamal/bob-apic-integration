@@ -78,8 +78,8 @@ the approved SRS and the input tabs.
     Each points to a definition, `#/definitions/401ErrorResponse` and `#/definitions/429ErrorResponse`,
     in the gateway's error format: `httpCode`, `httpMessage`, `moreInformation`, all strings. Examples:
     `{"httpCode":"401","httpMessage":"Unauthorized","moreInformation":"Invalid client id or secret."}`
-    and `{"httpCode":"429","httpMessage":"Too Many Requests","moreInformation":"Rate Limit exceeded"}`.
-    Descriptions: `Unauthorized` and `Too Many Requests`.
+    and `{"httpCode":"429","httpMessage":"Too Many Requests","moreInformation":"Assembly Rate Limit exceeded"}`
+    *(tested)*. Descriptions: `Unauthorized` and `Too Many Requests`.
   - If the tab's sample error is itself a 401 or 429 (it comes from the backend), keep API Connect's
     definition for that code and add the backend's sample to its description: "The backend can also
     return: <the sample on one line>".
@@ -93,8 +93,10 @@ the approved SRS and the input tabs.
     with "Backside URL invalid" *(tested)*;
   - a `header-control` allowlist with only the headers the tab lists, so `ClientId` and `Authorization`
     never reach the backend, and an empty `parameter-control` allowlist.
-  A header that API Connect sets is set with a `set-variable` before the invoke
-  (`message.headers.<name>`): the fixed value, or `$(<catalog property>)` for a secret.
+  A header that API Connect sets is set with a `set-variable` (version 2.0.0) before the invoke
+  (`set: message.headers.<name>`, `type: string`): the fixed value, or `$(<catalog property>)` for a
+  secret. Without `type`, publishing fails with "Missing required field: type", and `apic validate`
+  does not catch it *(tested)*.
 - **API-07** Catalog properties: one per backend URL (the URL without its query string) and one per
   secret: `loyalty-omw-redemption-url`, `loyalty-lms-session-token-url`,
   `loyalty-partnerhub-offers-url`, `loyalty-partnerhub-api-key`.
@@ -279,8 +281,11 @@ reaches the catalog before the developer says to publish.
 - **CHG-05 YAML.** Change only the affected API files: raise `info.version`; a new consumer header
   becomes a header parameter (`required: true` for M, `enum` for a fixed value) and is added to the
   `header-control` allowlist; a renamed response field is renamed in the 200 schema and example.
-  - Request validation: the body schema gets a `required` list and, per field, `pattern`, `enum` or
-    `maxLength` from the table (`9 digits` → `^[0-9]{9}$`; `LM followed by 8 digits` → `^LM[0-9]{8}$`;
+  - Request validation: write the body schema inline in the body parameter, never as a `$ref` to
+    `definitions`: the gateway keeps the compiled schema of an API name and version, so after a reset
+    a re-published `$ref` schema fails every call with "Invalid schema reference: schema anchor should
+    reference a valid schema" *(tested)*. The schema gets a `required` list and, per field, `pattern`,
+    `enum` or `maxLength` from the table (`9 digits` → `^[0-9]{9}$`; `LM followed by 8 digits` → `^LM[0-9]{8}$`;
     `digits only` → `^[0-9]+$`; `15 digits` → `^[0-9]{15}$`). As the first two assembly steps: `parse`
     (version 2.2.0, `parse-settings-reference: {default: apic-default-parsesettings}`) then `validate`
     (version 2.7.0, `validate-against: body-param`). Without `parse`, `validate` rejects every request
