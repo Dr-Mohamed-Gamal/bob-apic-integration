@@ -9,7 +9,7 @@ file. Bob does the work; the presenter plays the API Connect developer who appro
 | 1 | fills the SRS from the Excel sheet | 2 min |
 | 2 | creates the YAML, and a mock backend from the SRS samples | 2 min |
 | 3 | validates the YAML | 1 min |
-| 4 | deploys to Sandbox | 2 min |
+| 4 | deploys: the product and its APIs go to Develop, then on your go-ahead to Sandbox | 3 min + 1 go-ahead |
 | 5 | tests every API: 401, 200 with the SRS sample, 429 on the ATM plan | 3 min + 1 approval |
 | Ask | "Why does it accept an empty body?" | 1 min |
 | 6 | applies the revised Excel sheet: new version, validation, a new consumer | 5 min + 1 approval |
@@ -61,7 +61,7 @@ apic login --server <platform API host from .bob/rules/sandbox-environment.md> -
    click Approve on each command).
 4. Open in browser tabs: the input workbook (`inputs/LoyaltyAPIsForMobApp_20261030.xlsx`), the
    revised one (`inputs/revisions/LoyaltyAPIsForMobApp_20261105.xlsx`), and API Manager
-   (logged in, on Manage → Sandbox).
+   (logged in, one tab on Develop and one on Manage → Sandbox).
 
 ---
 
@@ -96,9 +96,21 @@ before the backend team is ready."
 **Show:** `docs/validation.md`: "Validated" for every file, a check of each rule, the comparison with
 the SRS value by value, and the safety checks.
 
-## Step 4 – Bob deploys the YAML files
+## Step 4 – Bob deploys: Develop first, then Sandbox
 
-> Step 4: deploy to Sandbox.
+> Step 4: deploy.
+
+Bob puts the product and its APIs in the Develop tab as drafts, then **stops for your go-ahead**.
+Nothing is in Sandbox yet.
+
+**Show:** API Manager → Develop → Products → LoyaltyRewards 1.0.0: the three APIs it packages and
+the plans with their rate limits, as in the SRS. Then Develop → APIs: open one API. Then Manage →
+Sandbox → Products: still empty.
+
+**Say:** "By hand this is Develop, Add, New product, fill in the details, select the APIs, add the
+plans. Bob did it from the SRS, and nothing is live until your developer says so."
+
+> Publish to Sandbox.
 
 **Show:** API Manager → Manage → Sandbox → Products: LoyaltyRewards 1.0.0 and LoyaltyMocks 1.0.0
 **Published**. Then `docs/deployment.md`: each API answers 401 without credentials, so it is live
@@ -152,8 +164,9 @@ a new consumer, Internet Banking.
 4. moves only Points Redemption to 1.0.1 (new header, renamed field, request validation) and the
    product to 1.1.0 (with the new Internet Banking plan);
 5. validates;
-6. releases 1.1.0 so that it supersedes 1.0.0: MOBAPP and ATMAPP stay on 1.0.0 and keep working
-   until their apps send the new header; new apps get 1.1.0;
+6. puts 1.1.0 in Develop next to 1.0.0, then releases it to Sandbox so that it supersedes 1.0.0:
+   MOBAPP and ATMAPP stay on 1.0.0 and keep working until their apps send the new header; new apps
+   get 1.1.0;
 7. creates IBAPP and subscribes it to 1.1.0, then **stops for your approval**.
 
 **You:** approve IBAPP in API Manager → Tasks, then tell Bob `Approved.`
@@ -201,7 +214,7 @@ and production stays with your pipeline."
 | Symptom | Cause | Fix |
 |---|---|---|
 | Bob says login failed | Wrong user, password or realm in the login file | See "If the reset script says Login failed" above, then tell Bob "continue" |
-| Bob says a product is already in the catalog | The reset was not run | Run `tools/reset-demo.sh`, then start again from Step 1 |
+| Bob says a product is already in the catalog, or a draft is already in Develop | The reset was not run | Run `tools/reset-demo.sh`, then start again from Step 1 |
 | A valid call returns 500 or an httpbin echo | A catalog property is wrong, or the mock was not published before the product | Run the reset and start again: property values are fixed when the product is published |
 | Token request returns "client not subscribed" | A subscription is not approved yet | Approve it in API Manager → Sandbox → Tasks |
 | The burst gets 429 too early | `atmapp` was called in the minute before | Wait one minute and ask Bob to repeat the burst test |

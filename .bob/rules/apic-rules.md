@@ -5,7 +5,8 @@ Bob reads this file on every turn. The work has seven steps, one prompt each:
 1. fill the requirement document (SRS) from the input workbook;
 2. create the API Connect YAML files, and a mock backend built from the SRS samples;
 3. validate the YAML files;
-4. deploy them to the Sandbox catalog;
+4. deploy them: to the Develop tab as drafts first, then, when the developer says so, to the Sandbox
+   catalog;
 5. test the deployed APIs;
 6. apply a change from a revised workbook as a new version;
 7. answer the developer's questions on how the deployed APIs behave.
@@ -155,11 +156,16 @@ sample responses, inside API Connect, so the APIs can be tested before the real 
      `sandbox-environment.md` without printing it; report "not found").
   End with a one-line verdict. If a row is NOT OK, fix the file, validate again and update the report.
 
-## 5. Step 4 – deploy to Sandbox
+## 5. Step 4 – deploy: Develop first, then Sandbox
 
-Step 4 runs only against the Sandbox catalog in `sandbox-environment.md`.
+Step 4 has two parts, with the developer's go-ahead between them. First the product and its APIs go
+to API Manager's Develop tab as drafts, where the developer reviews them (DEP-04). Then the draft
+product is published to the Sandbox catalog in `sandbox-environment.md` (DEP-05 to DEP-08). Nothing
+reaches the catalog before the developer says to publish.
 
 - **DEP-01 Safety.** Sandbox only. Never publish to, change or delete anything in another catalog.
+  Drafts belong to the provider org, not to a catalog: create only the drafts of this project's
+  product and APIs, and never change another draft.
   Never delete anything in API Connect, and never run `tools/reset-demo.sh` (the presenter's script).
   Never republish a product version that is already in the catalog: republishing replaces the product
   *(tested)*. Deploy only after Step 3 passed.
@@ -173,25 +179,44 @@ Step 4 runs only against the Sandbox catalog in `sandbox-environment.md`.
   catalog (`apic configured-oauth-providers:list --scope catalog …`); the TLS client profile is in the
   catalog (`apic configured-tls-client-profiles:list --scope catalog … <profile name without :version>`);
   products `loyaltyrewards:<version>` and `loyaltymocks:<version>` are not in the catalog
-  (`apic products:list-all --scope catalog …`).
-  If something is missing or the product is already there, stop and tell the developer.
-- **DEP-04 Catalog properties.** Create each property from `sandbox-environment.md` that does not exist
+  (`apic products:list-all --scope catalog …`); the draft product `loyaltyrewards:<version>` and the
+  drafts of its APIs are not in Develop (`apic draft-products:list-all --org <org> --server <server>`,
+  `apic draft-apis:list-all …`).
+  If something is missing, or the product or a draft is already there, stop and tell the developer.
+- **DEP-04 Develop.** Put the product and its APIs in the Develop tab as drafts, with one command:
+  `apic draft-products:create apic/LoyaltyRewards.yaml --org <org> --server <server>`.
+  It uploads the product and the API files the product refers to *(tested)*.
+  Check the result: the draft product has every API and every plan of the product file
+  (`apic draft-products:get loyaltyrewards:<version> --fields draft_product --output - …`; always
+  pass `--output -`, otherwise the command writes the product and API files into the workspace
+  *(tested)*), and each API is a draft (`apic draft-apis:list-all …`).
+  The mock product is not a draft: it stands in for the backends and
+  goes to Sandbox from its file in DEP-06.
+  Then stop. Tell the developer that the product is in Develop (Develop → Products → LoyaltyRewards)
+  with its APIs and plans, and that nothing is in Sandbox yet. Ask them to review it and to say when
+  to publish. Continue only when they say so.
+- **DEP-05 Catalog properties.** Create each property from `sandbox-environment.md` that does not exist
   yet (`apic properties:create --scope catalog`), with the value exactly as written there (no leading
   space or tab *(tested)*). Then list them and check every value; mask the API key.
-- **DEP-05 Publish.** Catalog property values are fixed when a product is published; changing a
-  property later does not reach a published API *(tested)*. So create the properties first (DEP-04),
-  then publish the mock product, then the product:
-  `apic products:publish apic/mocks/LoyaltyMocks.yaml --catalog <catalog> --org <org> --server <server>`
-  and `apic products:publish apic/LoyaltyRewards.yaml …`. Check with `apic products:list-all --scope
-  catalog …` that both are `published`.
-- **DEP-06 Smoke check.** For each API, call its URL (`<gateway base URL><basePath><operation path>`)
+- **DEP-06 Publish.** Catalog property values are fixed when a product is published; changing a
+  property later does not reach a published API *(tested)*. So create the properties first (DEP-05),
+  then publish the mock product from its file, then the product from its draft:
+  1. `apic products:publish apic/mocks/LoyaltyMocks.yaml --catalog <catalog> --org <org> --server <server>`;
+  2. write `apic/releases/publish-<product version>.yaml` with one line, `draft_product_url: <url>`,
+     where `<url>` is the `url` of the draft product
+     (`apic draft-products:get loyaltyrewards:<version> --fields url --output - …`); then
+     `apic draft-products:publish apic/releases/publish-<product version>.yaml --catalog <catalog> --org <org> --server <server>`.
+     The file needs nothing else *(tested)*.
+  Check with `apic products:list-all --scope catalog …` that both are `published`.
+- **DEP-07 Smoke check.** For each API, call its URL (`<gateway base URL><basePath><operation path>`)
   with `curl -sk`, the consumer headers and query parameters from the tab, and no credentials. Expect
   401: the API is live on the gateway and refuses callers without credentials. Call each mock URL
   (the catalog property value) directly: expect 200 and the SRS sample response.
-- **DEP-07 Report.** Write `docs/deployment.md`: the target (server, org, catalog), the checks from
-  DEP-03, the properties (key masked), the publish result and state, the API URLs, and the smoke check
-  per API (expected 401, actual), then a one-line verdict. If a step fails, stop, report the error and
-  what to fix; do not retry a publish.
+- **DEP-08 Report.** Write `docs/deployment.md`: the target (server, org, catalog), the checks from
+  DEP-03, the drafts created in Develop (the product, its APIs and plans), the properties (key
+  masked), the publish result and state, the API URLs, and the smoke check per API (expected 401,
+  actual), then a one-line verdict. If a step fails, stop, report the error and what to fix; do not
+  retry a publish.
 
 ## 6. Step 5 – test the deployed APIs
 
@@ -273,7 +298,13 @@ Step 4 runs only against the Sandbox catalog in `sandbox-environment.md`.
      `apic products:list-all`) and `plans: [{source: default-plan, target: default-plan}]` *(tested)*.
   2. Product: supersede it, never replace it, so the apps already subscribed stay on the old version
      and keep working: a breaking change must not reach them before they are ready.
-     `apic products:publish apic/LoyaltyRewards.yaml --stage …`, then
+     Develop first, with the same command as in Step 4:
+     `apic draft-products:create apic/LoyaltyRewards.yaml --org <org> --server <server>`. It adds the
+     draft of the new product version and of each changed API; the API drafts that already exist are
+     reused, and the drafts of the old versions stay *(tested)*. Check as in
+     DEP-04, without stopping. Then publish the new draft product as in DEP-06
+     (`apic/releases/publish-<new version>.yaml`): for a moment both versions are published
+     *(tested)*. Then supersede the old version with the new one:
      `apic products:supersede --scope catalog loyaltyrewards:<new version> <mapping file> …`, with
      `apic/releases/plan-mapping.yaml`: `product_url` of the old version and each existing plan mapped
      to itself (`default-plan` → `default-plan`, `atm-plan` → `atm-plan`); a new plan has no source. If
@@ -304,7 +335,7 @@ Step 4 runs only against the Sandbox catalog in `sandbox-environment.md`.
   3. the changes per file against `apic/releases/…`: a summary table (file, what changed, which
      workbook difference), then the `diff -u` of each changed file in a code block; unchanged files
      confirmed with `cmp`;
-  4. the release steps and states, and which app is on which version;
+  4. the release steps and states, in Develop and in Sandbox, and which app is on which version;
   5. the retest table with the requirement IDs, and a one-line verdict.
 
 ## 8. Step 7 – answer questions on how the deployed APIs behave

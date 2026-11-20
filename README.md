@@ -11,8 +11,10 @@ data prepared by IBM; nothing here is a bank document.
 2. **Create the YAML.** One OpenAPI YAML per API and the product (LoyaltyRewards 1.0.0), plus a mock
    backend per API built from the SRS sample responses (LoyaltyMocks 1.0.0).
 3. **Validate.** `apic validate` on both products, and `docs/validation.md`.
-4. **Deploy.** Bob logs in, checks Sandbox, creates the catalog properties, publishes the mocks and
-   the product, checks each API is live, and writes `docs/deployment.md`.
+4. **Deploy.** Bob logs in, checks the target, and puts the product and its APIs in the Develop tab
+   as drafts for the developer to review. On the developer's go-ahead, Bob creates the catalog
+   properties, publishes the mocks and the draft product to Sandbox, checks each API is live, and
+   writes `docs/deployment.md`.
 5. **Test.** One test app per consumer (mobile banking, ATM), each on its own plan; the developer
    approves the subscriptions. Per API: 401, and 200 with the SRS sample. Then a burst on the ATM plan
    that gets 429. Results in `docs/test-results.md`, linked to the SRS
@@ -21,8 +23,8 @@ data prepared by IBM; nothing here is a bank document.
    - the differences and their impact (a new header, a renamed field, request validation, and a new
      consumer, Internet Banking, onboarded with no API change);
    - SRS 1.1, the changed API at 1.0.1 and the product at 1.1.0;
-   - validation, a release that supersedes 1.0.0 (the apps already live stay on it and keep working
-     until they move), and a retest;
+   - validation, a release through Develop that supersedes 1.0.0 (the apps already live stay on it
+     and keep working until they move), and a retest;
    - the report `docs/change-1.1.0.md`.
 7. **Ask.** Bob answers questions on how the deployed APIs behave, from the files and a real call.
 
@@ -35,7 +37,7 @@ The prompts and what to show are in [`DEMO_GUIDE.md`](DEMO_GUIDE.md).
 | `.bob/rules/` | `apic-rules.md`: how Bob does the seven steps. `sandbox-environment.md`: the API Connect Sandbox |
 | `inputs/` | `LoyaltyAPIsForMobApp_20261030.xlsx`: a Project tab and one tab per API (`.md` copy alongside). `revisions/`: the revised workbook for Step 6 |
 | `templates/` | `API-SRS-API_Connect_TEMPLATE.docx`: the empty SRS (`.md` copy alongside) |
-| `tools/` | `md_to_docx.py`: turns the SRS into Word. `reset-demo.sh`: returns Sandbox and the workspace to the starting state (run by the presenter) |
+| `tools/` | `md_to_docx.py`: turns the SRS into Word. `reset-demo.sh`: returns Sandbox, Develop and the workspace to the starting state (run by the presenter) |
 
 Bob creates during a run: `requirements/`, `apic/` (with `mocks/` and, in Step 6, `releases/`) and
 `docs/`.
@@ -58,7 +60,8 @@ Then:
 1. Replace every `<…>` in `.bob/rules/sandbox-environment.md` with your environment's values. Bob
    and the reset script stop if one is left.
 2. Create the login file once (`DEMO_GUIDE.md`, "One time only").
-3. Run `tools/reset-demo.sh`. It removes earlier runs from Sandbox and Bob's outputs from this folder.
+3. Run `tools/reset-demo.sh`. It removes earlier runs from Sandbox and Develop, and Bob's outputs
+   from this folder.
 4. Open the folder in Bob and follow `DEMO_GUIDE.md`.
 
 Bob's outputs (`requirements/`, `apic/`, `docs/`) are git-ignored.
